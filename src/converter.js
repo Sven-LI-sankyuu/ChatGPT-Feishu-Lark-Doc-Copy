@@ -186,10 +186,10 @@
     const tag = node.tagName.toLowerCase();
     const children = () => renderChildren(node);
 
-    if (/^h[1-6]$/.test(tag)) return `\n\n${"#".repeat(Number(tag[1]))} ${children().trim()}\n\n`;
-    if (tag === "p" || tag === "div") return `\n\n${children().trim()}\n\n`;
+    if (/^h[1-6]$/.test(tag)) return `\n${"#".repeat(Number(tag[1]))} ${children().trim()}\n`;
+    if (tag === "p" || tag === "div") return `\n${children().trim()}\n`;
     if (tag === "br") return "\n";
-    if (tag === "hr") return "\n\n---\n\n";
+    if (tag === "hr") return "\n---\n";
     if (tag === "strong" || tag === "b") return wrapInline("**", children());
     if (tag === "em" || tag === "i") return wrapInline("*", children());
     if (tag === "del" || tag === "s") return wrapInline("~~", children());
@@ -198,7 +198,7 @@
     if (tag === "pre") return renderCodeBlock(node);
     if (tag === "blockquote") return renderBlockquote(node);
     if (tag === "ul" || tag === "ol") return `\n${renderList(node, 0)}\n`;
-    if (tag === "table") return `\n\n${renderTable(node)}\n\n`;
+    if (tag === "table") return `\n${renderTable(node)}\n`;
     if (tag === "a") return renderLink(node, children());
     if (["thead", "tbody", "tfoot", "tr", "th", "td", "li"].includes(tag)) return children();
     return children();
@@ -229,12 +229,12 @@
       : "";
     const value = (code || pre).textContent.replace(/^\n|\n$/g, "");
     const fence = value.includes("```") ? "~~~~" : "```";
-    return `\n\n${fence}${language}\n${value}\n${fence}\n\n`;
+    return `\n${fence}${language}\n${value}\n${fence}\n`;
   }
 
   function renderBlockquote(node) {
     const value = normalizeMarkdown(renderChildren(node));
-    return `\n\n${value.split("\n").map((line) => `> ${line}`.trimEnd()).join("\n")}\n\n`;
+    return `\n${value.split("\n").map((line) => `> ${line}`.trimEnd()).join("\n")}\n`;
   }
 
   function renderList(list, depth) {
@@ -290,11 +290,38 @@
   }
 
   function normalizeMarkdown(text) {
-    return String(text)
-      .replace(/[ \t]+\n/g, "\n")
-      .replace(/\n[ \t]+\n/g, "\n\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
+    const output = [];
+    let protectedBlock = "";
+
+    for (const rawLine of String(text).replace(/\r\n?/g, "\n").split("\n")) {
+      const line = rawLine.replace(/[ \t]+$/g, "");
+      const trimmed = line.trim();
+
+      if (protectedBlock) {
+        output.push(line);
+        const closesFormula = protectedBlock === "formula" && trimmed === "$$";
+        const closesFence = protectedBlock !== "formula" && trimmed === protectedBlock;
+        if (closesFormula || closesFence) protectedBlock = "";
+        continue;
+      }
+
+      const fence = trimmed.match(/^(```|~~~~)/)?.[1];
+      if (fence) {
+        protectedBlock = fence;
+        output.push(line.trimStart());
+        continue;
+      }
+
+      if (trimmed === "$$") {
+        protectedBlock = "formula";
+        output.push("$$");
+        continue;
+      }
+
+      if (trimmed) output.push(line);
+    }
+
+    return output.join("\n").trim();
   }
 
   globalThis.ChatGPTFeishuCopyConverter = Object.freeze({

@@ -21,7 +21,7 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   const dom = new JSDOM(`
     <article data-testid="conversation-turn-2">
       <div data-message-author-role="assistant"><div class="markdown" style="height:2000px"><h2>第一条</h2><p>可视区域开头</p><p>回复末尾标记 FIRST_TAIL</p></div></div>
-      <div class="actions"><button data-testid="copy-turn-action-button" aria-label="Copy">原生复制</button></div>
+      <div class="actions"><button data-testid="copy-turn-action-button" aria-label="Copy" style="color: rgb(90, 90, 90); opacity: 0.66"><svg style="color: rgb(80, 80, 80); opacity: 0.8"></svg></button></div>
     </article>
     <article data-testid="conversation-turn-4">
       <div data-message-author-role="assistant"><div class="markdown"><h2>第二条</h2><p>回复末尾标记 SECOND_TAIL</p></div></div>
@@ -46,6 +46,8 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   assert.equal(buttons.length, 2);
   assert.equal(buttons[0].getAttribute("aria-label"), "复制飞书文档版");
   assert.equal(buttons[0].previousElementSibling.getAttribute("data-testid"), "copy-turn-action-button");
+  assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-color"), "rgb(80, 80, 80)");
+  assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-opacity"), "0.528");
   assert.equal(buttons[1].previousElementSibling.getAttribute("data-testid"), "copy-turn-action-button");
 
   buttons[0].dispatchEvent(new dom.window.MouseEvent("mouseenter"));

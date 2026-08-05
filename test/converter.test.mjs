@@ -83,6 +83,40 @@ test("保留相邻和嵌套的强调与删除线", () => {
   assert.match(result.text, /^\*\*粗体别名\*\*、\*斜体别名\*、~~删除线别名~~$/m);
 });
 
+test("移除块之间的空白行并保留代码块内部空行", () => {
+  const { converter, root } = createConverter(`
+    <div class="markdown">
+      <h2>紧凑排版</h2>
+      <p>第一段</p>
+      <p>第二段</p>
+      <div class="katex-display"><span class="katex"><math><semantics><annotation encoding="application/x-tex">a+b=c
+
+x+y=z</annotation></semantics></math></span></div>
+      <pre><code>第一行
+
+第三行</code></pre>
+    </div>
+  `);
+
+  const result = converter.convertDomToClipboard(root);
+
+  assert.equal(result.text, [
+    "## 紧凑排版",
+    "第一段",
+    "第二段",
+    "$$",
+    "a+b=c",
+    "",
+    "x+y=z",
+    "$$",
+    "```",
+    "第一行",
+    "",
+    "第三行",
+    "```"
+  ].join("\n"));
+});
+
 test("空内容正确失败", () => {
   const { converter, root } = createConverter('<div class="markdown"><button>复制</button></div>');
   assert.throws(() => converter.convertDomToClipboard(root), /转换后为空/);

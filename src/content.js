@@ -45,11 +45,16 @@
       const turnNode = findTurnNode(assistantNode);
       const officialButton = turnNode && findOfficialCopyButton(turnNode);
 
-      if (!contentNode || !officialButton || officialButton.parentElement?.querySelector(`[${BUTTON_ATTRIBUTE}]`)) {
+      if (!contentNode || !officialButton) continue;
+
+      const existingButton = officialButton.parentElement?.querySelector(`[${BUTTON_ATTRIBUTE}]`);
+      if (existingButton) {
+        syncButtonAppearance(existingButton, officialButton);
         continue;
       }
 
-      const button = createCopyButton(contentNode);
+      const button = createCopyButton(contentNode, officialButton);
+      syncButtonAppearance(button, officialButton);
       officialButton.insertAdjacentElement("afterend", button);
     }
   }
@@ -82,7 +87,7 @@
     }) || null;
   }
 
-  function createCopyButton(contentNode) {
+  function createCopyButton(contentNode, officialButton) {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute(BUTTON_ATTRIBUTE, "");
@@ -91,11 +96,27 @@
     button.setAttribute("aria-describedby", "feishu-copy-tooltip");
     button.innerHTML = clipboardIcon();
     button.addEventListener("click", (event) => handleFeishuCopy(event, button, contentNode));
-    button.addEventListener("mouseenter", () => showTooltip(button));
+    button.addEventListener("mouseenter", () => {
+      syncButtonAppearance(button, officialButton);
+      showTooltip(button);
+    });
     button.addEventListener("mouseleave", () => hideTooltip(button));
-    button.addEventListener("focus", () => showTooltip(button));
+    button.addEventListener("focus", () => {
+      syncButtonAppearance(button, officialButton);
+      showTooltip(button);
+    });
     button.addEventListener("blur", () => hideTooltip(button));
     return button;
+  }
+
+  function syncButtonAppearance(button, officialButton) {
+    if (!officialButton.isConnected) return;
+    const officialStyle = getComputedStyle(officialButton);
+    const officialIcon = officialButton.querySelector("svg");
+    const iconStyle = officialIcon ? getComputedStyle(officialIcon) : officialStyle;
+    const opacity = Number.parseFloat(officialStyle.opacity) * Number.parseFloat(iconStyle.opacity);
+    button.style.setProperty("--feishu-copy-official-color", iconStyle.color || officialStyle.color);
+    button.style.setProperty("--feishu-copy-official-opacity", String(opacity));
   }
 
   async function handleFeishuCopy(event, button, contentNode) {

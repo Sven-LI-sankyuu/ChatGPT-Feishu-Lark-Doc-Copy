@@ -10,13 +10,13 @@ button[data-feishu-copy-button] {
   background: transparent;
   border: 0;
   border-radius: 6px;
-  color: inherit;
+  color: var(--feishu-copy-official-color, inherit);
   cursor: pointer;
   display: inline-flex;
   height: 32px;
   justify-content: center;
   margin: 0;
-  opacity: 0.42;
+  opacity: var(--feishu-copy-official-opacity, 0.78);
   padding: 0;
   position: relative;
   transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease;
@@ -34,7 +34,7 @@ button[data-feishu-copy-button]:hover,
 button[data-feishu-copy-button]:focus-visible,
 button[data-feishu-copy-button][data-state] {
   background: rgba(127, 127, 127, 0.12);
-  opacity: 0.9;
+  opacity: 1;
 }
 
 button[data-feishu-copy-button]:focus-visible {
