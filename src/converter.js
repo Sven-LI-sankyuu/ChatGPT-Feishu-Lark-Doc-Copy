@@ -95,12 +95,25 @@
 
   function normalizeOfficialDisplayFormula(lines) {
     const hasMultilineEnvironment = lines.some((line) => /\\begin\{(?:aligned|array|cases|matrix|pmatrix|bmatrix|vmatrix)\}/.test(line));
+    const normalized = [];
 
-    return lines.map((line) => {
-      if (/^\s*={3,}\s*$/.test(line)) return "=";
-      if (hasMultilineEnvironment) return line.replace(/(?<!\\)\\\s*$/, "\\\\");
-      return line;
-    });
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      if (/^\s*={3,}\s*$/.test(line)) {
+        normalized.push("=");
+        continue;
+      }
+
+      const subtractionHeading = line.match(/^\s*##\s+(.+?)\s*$/);
+      if (subtractionHeading) {
+        normalized.push(subtractionHeading[1], "-");
+        continue;
+      }
+
+      normalized.push(hasMultilineEnvironment ? line.replace(/(?<!\\)\\\s*$/, "\\\\") : line);
+    }
+
+    return normalized;
   }
 
   function convertInlineFormulaDelimiters(line) {

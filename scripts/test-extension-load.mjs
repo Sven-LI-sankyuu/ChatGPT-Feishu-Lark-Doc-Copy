@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,7 @@ import { chromium } from "playwright-core";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const extensionPath = resolve(root, "dist/unpacked");
+const manifest = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8"));
 const profile = await mkdtemp(resolve(tmpdir(), "chatgpt-feishu-extension-"));
 let context;
 
@@ -63,7 +64,7 @@ try {
   await button.waitFor();
   assert.equal(await button.count(), 1);
   assert.equal(await button.getAttribute("aria-label"), "复制飞书文档版");
-  assert.equal(await button.getAttribute("data-feishu-copy-version"), "0.1.2");
+  assert.equal(await button.getAttribute("data-feishu-copy-version"), manifest.version);
   assert.equal(await button.evaluate((node) => node.previousElementSibling?.getAttribute("data-testid")), "copy-turn-action-button");
 
   await button.click();

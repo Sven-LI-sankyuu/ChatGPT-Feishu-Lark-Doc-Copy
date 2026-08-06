@@ -109,6 +109,38 @@ test("将官方复制结果中的公式恢复为飞书定界符", () => {
   assert.doesNotMatch(result.text, /\n\n#|# 事件感知层\n\n/);
 });
 
+test("恢复公式中被官方复制误转成二级标题的减号", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "## 六、观察到的变化与目标事件影响",
+    "",
+    "### 6.2 目标事件的影响",
+    "",
+    "[",
+    "\\tau_{A\\rightarrow B}(W)",
+    "========================",
+    "",
+    "## X_B^W(A=1)",
+    "",
+    "X_B^W(A=0),",
+    "]"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "## 六、观察到的变化与目标事件影响",
+    "### 6.2 目标事件的影响",
+    "$$",
+    "\\tau_{A\\rightarrow B}(W)",
+    "=",
+    "X_B^W(A=1)",
+    "-",
+    "X_B^W(A=0),",
+    "$$"
+  ].join("\n"));
+});
+
 test("保留相邻和嵌套的强调与删除线", () => {
   const { converter, root } = createConverter(`
     <div class="markdown">
