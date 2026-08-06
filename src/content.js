@@ -17,6 +17,7 @@
   const BUTTON_ATTRIBUTE = "data-feishu-copy-button";
   const COPY_TEST_ID = "copy-turn-action-button";
   const TOOLTIP_ATTRIBUTE = "data-feishu-copy-tooltip";
+  const EXTENSION_VERSION = globalThis.chrome?.runtime?.getManifest?.().version || "dev";
   let scanScheduled = false;
   let tooltipOwner = null;
 
@@ -93,9 +94,10 @@
     button.setAttribute(BUTTON_ATTRIBUTE, "");
     button.setAttribute("aria-label", "复制飞书文档版");
     button.setAttribute("data-tooltip", "复制飞书文档版");
+    button.setAttribute("data-feishu-copy-version", EXTENSION_VERSION);
     button.setAttribute("aria-describedby", "feishu-copy-tooltip");
     button.innerHTML = clipboardIcon();
-    button.addEventListener("click", (event) => handleFeishuCopy(event, button, contentNode));
+    button.addEventListener("click", (event) => handleFeishuCopy(event, button, officialButton));
     button.addEventListener("mouseenter", () => {
       syncButtonAppearance(button, officialButton);
       showTooltip(button);
@@ -119,7 +121,7 @@
     button.style.setProperty("--feishu-copy-official-opacity", String(opacity));
   }
 
-  async function handleFeishuCopy(event, button, contentNode) {
+  async function handleFeishuCopy(event, button, officialButton) {
     event.preventDefault();
     event.stopPropagation();
     if (button.dataset.state === "copying") return;
@@ -127,8 +129,9 @@
     setButtonState(button, "copying", "正在复制飞书文档版");
 
     try {
-      if (!contentNode.isConnected) throw new Error("这条回复已经离开页面，请刷新后重试。");
-      const payload = converter.convertDomToClipboard(contentNode);
+      if (!officialButton.isConnected) throw new Error("这条回复已经离开页面，请刷新后重试。");
+      const officialText = await copyOfficialReply(officialButton);
+      const payload = converter.convertOfficialCopyToClipboard(officialText);
       await writeFeishuClipboard(payload.text);
       setButtonState(button, "success", "已复制飞书文档版, 去粘贴吧~");
       window.setTimeout(() => resetButton(button), 1600);
@@ -137,6 +140,33 @@
       setButtonState(button, "error", "复制飞书文档版失败, 请重试");
       window.setTimeout(() => resetButton(button), 3000);
     }
+  }
+
+  async function copyOfficialReply(officialButton) {
+    if (!navigator.clipboard?.readText) {
+      throw new Error("当前浏览器未授权读取官方复制结果。");
+    }
+
+    const previousText = await navigator.clipboard.readText();
+    const previousButtonState = `${officialButton.innerHTML}\n${officialButton.getAttribute("aria-label") || ""}`;
+    officialButton.click();
+
+    let latestText = previousText;
+    let officialStateChanged = false;
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await delay(50);
+      latestText = await navigator.clipboard.readText();
+      const currentButtonState = `${officialButton.innerHTML}\n${officialButton.getAttribute("aria-label") || ""}`;
+      officialStateChanged ||= currentButtonState !== previousButtonState;
+      if (latestText && latestText !== previousText) return latestText;
+      if (attempt >= 5 && latestText && officialStateChanged) return latestText;
+    }
+
+    throw new Error("没有读取到官方复制结果，已取消本次复制。");
+  }
+
+  function delay(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
 
   async function writeFeishuClipboard(text) {

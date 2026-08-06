@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-feishu-rich-copy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "通过独立按钮将 ChatGPT 回复按飞书可解析的 Markdown 复制到剪贴板。",
   "homepage": "https://github.com/Sven-LI-sankyuu/ChatGPT-Feishu-Lark-Doc-Copy",

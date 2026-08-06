@@ -27,6 +27,147 @@
       .replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, formula) => `$${formula.trim()}$`);
   }
 
+  function convertOfficialCopyToClipboard(sourceText) {
+    if (typeof sourceText !== "string") {
+      throw new TypeError("官方复制结果必须是文本。");
+    }
+
+    const text = normalizeMarkdown(convertOfficialFormulaDelimiters(sourceText));
+    if (!text) throw new Error("官方复制结果为空，已取消复制。");
+
+    return Object.freeze({ text });
+  }
+
+  function convertOfficialFormulaDelimiters(sourceText) {
+    const lines = String(sourceText).replace(/\r\n?/g, "\n").split("\n");
+    const output = [];
+    let fence = "";
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      const trimmed = line.trim();
+
+      if (fence) {
+        output.push(line);
+        if (trimmed.startsWith(fence)) fence = "";
+        continue;
+      }
+
+      const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
+      if (fenceMatch) {
+        fence = fenceMatch[1];
+        output.push(line);
+        continue;
+      }
+
+      const closingDelimiter = trimmed === "\\[" ? "\\]" : trimmed === "[" ? "]" : "";
+      if (closingDelimiter) {
+        const closingIndex = findClosingDelimiter(lines, index + 1, closingDelimiter);
+        const formulaLines = closingIndex >= 0 ? lines.slice(index + 1, closingIndex) : [];
+        const isExplicitLatex = trimmed === "\\[";
+
+        if (closingIndex >= 0 && (isExplicitLatex || looksLikeDisplayFormula(formulaLines))) {
+          output.push("$$", ...normalizeOfficialDisplayFormula(formulaLines), "$$");
+          index = closingIndex;
+          continue;
+        }
+      }
+
+      output.push(convertInlineFormulaDelimiters(line));
+    }
+
+    return output.join("\n");
+  }
+
+  function findClosingDelimiter(lines, startIndex, delimiter) {
+    for (let index = startIndex; index < lines.length; index += 1) {
+      if (lines[index].trim() === delimiter) return index;
+    }
+    return -1;
+  }
+
+  function looksLikeDisplayFormula(lines) {
+    const value = lines.join("\n").trim();
+    if (!value) return false;
+
+    return /\\[A-Za-z]+|[_^{}]|(?:^|\s)[=<>≤≥∈∑∏±→⟶](?:\s|$)/u.test(value);
+  }
+
+  function normalizeOfficialDisplayFormula(lines) {
+    const hasMultilineEnvironment = lines.some((line) => /\\begin\{(?:aligned|array|cases|matrix|pmatrix|bmatrix|vmatrix)\}/.test(line));
+
+    return lines.map((line) => {
+      if (/^\s*={3,}\s*$/.test(line)) return "=";
+      if (hasMultilineEnvironment) return line.replace(/(?<!\\)\\\s*$/, "\\\\");
+      return line;
+    });
+  }
+
+  function convertInlineFormulaDelimiters(line) {
+    const codeSpanPattern = /(`+)(.*?)\1/g;
+    const output = [];
+    let cursor = 0;
+    let match;
+
+    while ((match = codeSpanPattern.exec(line))) {
+      output.push(convertInlineText(line.slice(cursor, match.index)), match[0]);
+      cursor = match.index + match[0].length;
+    }
+
+    output.push(convertInlineText(line.slice(cursor)));
+    return output.join("");
+  }
+
+  function convertInlineText(text) {
+    const explicit = String(text).replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, formula) => `$${formula.trim()}$`);
+    let output = "";
+
+    for (let index = 0; index < explicit.length; index += 1) {
+      if (explicit[index] !== "(" || explicit[index - 1] === "\\") {
+        output += explicit[index];
+        continue;
+      }
+
+      const closingIndex = findMatchingParenthesis(explicit, index);
+      if (closingIndex < 0) {
+        output += explicit[index];
+        continue;
+      }
+
+      const formula = explicit.slice(index + 1, closingIndex).trim();
+      if (!looksLikeInlineFormula(formula)) {
+        output += explicit.slice(index, closingIndex + 1);
+        index = closingIndex;
+        continue;
+      }
+
+      output += `$${formula}$`;
+      index = closingIndex;
+    }
+
+    return output;
+  }
+
+  function findMatchingParenthesis(text, openingIndex) {
+    let depth = 0;
+
+    for (let index = openingIndex; index < text.length; index += 1) {
+      if (text[index] === "(" && text[index - 1] !== "\\") depth += 1;
+      if (text[index] === ")" && text[index - 1] !== "\\") depth -= 1;
+      if (depth === 0) return index;
+    }
+
+    return -1;
+  }
+
+  function looksLikeInlineFormula(value) {
+    if (!value || value.includes("$") || /https?:\/\//i.test(value)) return false;
+    if (/^[A-Za-zα-ωΑ-Ω]$/u.test(value)) return true;
+    if (/\\[A-Za-z]+/.test(value)) return true;
+    if (/[_^{}]/.test(value)) return true;
+    return !/[\p{Script=Han}]/u.test(value) && /[A-Za-zα-ωΑ-Ω]/u.test(value) && /[=<>≤≥∈±→]/u.test(value);
+  }
+
   function convertDomToClipboard(sourceRoot) {
     if (!sourceRoot?.cloneNode) {
       throw new TypeError("转换器需要一个可克隆的 DOM 根节点。");
@@ -326,6 +467,7 @@
 
   globalThis.ChatGPTFeishuCopyConverter = Object.freeze({
     convertDomToClipboard,
-    convertExistingLatexDelimiters
+    convertExistingLatexDelimiters,
+    convertOfficialCopyToClipboard
   });
 })();

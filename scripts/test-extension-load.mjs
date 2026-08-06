@@ -41,11 +41,29 @@ try {
     </body></html>`
   }));
   await page.goto("https://chatgpt.com/__feishu_extension_test__");
+  await page.evaluate(() => {
+    const officialButton = document.querySelector('button[data-testid="copy-turn-action-button"]');
+    officialButton.addEventListener("click", async () => {
+      await navigator.clipboard.writeText([
+        "## 真实扩展测试",
+        "",
+        "变量 (D_e)",
+        "",
+        "[",
+        "D_e={I_{e1},I_{e2}}",
+        "]",
+        "",
+        "回复末尾 EXTENSION_TAIL"
+      ].join("\n"));
+      officialButton.setAttribute("aria-label", "Copied");
+    });
+  });
 
   const button = page.locator("[data-feishu-copy-button]");
   await button.waitFor();
   assert.equal(await button.count(), 1);
   assert.equal(await button.getAttribute("aria-label"), "复制飞书文档版");
+  assert.equal(await button.getAttribute("data-feishu-copy-version"), "0.1.2");
   assert.equal(await button.evaluate((node) => node.previousElementSibling?.getAttribute("data-testid")), "copy-turn-action-button");
 
   await button.click();
@@ -53,6 +71,8 @@ try {
   const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
   assert.match(clipboardText, /^## 真实扩展测试/m);
   assert.match(clipboardText, /EXTENSION_TAIL/);
+  assert.match(clipboardText, /变量 \$D_e\$/);
+  assert.match(clipboardText, /\$\$\nD_e=\{I_\{e1\},I_\{e2\}\}\n\$\$/);
 
   console.log("真实 Chromium 扩展加载、按钮注入与剪贴板写入测试通过。");
 } finally {

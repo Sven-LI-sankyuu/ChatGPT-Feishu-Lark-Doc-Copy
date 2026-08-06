@@ -69,6 +69,46 @@ test("转换文本中的原始 LaTeX 定界符", () => {
   assert.match(result.text, /```\n\\\(code\\\)\n```/);
 });
 
+test("将官方复制结果中的公式恢复为飞书定界符", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "# 事件感知层",
+    "",
+    "其中，(D_e) 表示披露事件，(k) 表示信息项，OpenAI（1968）保持普通文本。",
+    "",
+    "[",
+    "\\mathcal I_{T_e^-}",
+    "==================",
+    "{\\text{在 }T_e\\text{ 之前的信息}}.",
+    "]",
+    "",
+    "[",
+    "\\begin{cases}",
+    "x^2, & x\\ge 0,\\",
+    "-x, & x<0.",
+    "\\end{cases}",
+    "]",
+    "",
+    "代码 `示例 (D_e)` 不转换。",
+    "",
+    "```markdown",
+    "[",
+    "D_e={I_{e1}}",
+    "]",
+    "```"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.match(result.text, /其中，\$D_e\$ 表示披露事件，\$k\$ 表示信息项/);
+  assert.match(result.text, /OpenAI（1968）保持普通文本/);
+  assert.match(result.text, /\$\$\n\\mathcal I_\{T_e\^-\}\n=\n\{\\text\{在 \}T_e\\text\{ 之前的信息\}\}\.\n\$\$/);
+  assert.match(result.text, /x\^2, & x\\ge 0,\\\\\n-x, & x<0\./);
+  assert.match(result.text, /代码 `示例 \(D_e\)` 不转换/);
+  assert.match(result.text, /```markdown\n\[\nD_e=\{I_\{e1\}\}\n\]\n```/);
+  assert.doesNotMatch(result.text, /\n\n#|# 事件感知层\n\n/);
+});
+
 test("保留相邻和嵌套的强调与删除线", () => {
   const { converter, root } = createConverter(`
     <div class="markdown">

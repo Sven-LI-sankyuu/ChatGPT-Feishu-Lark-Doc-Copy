@@ -13,8 +13,8 @@ import { JSDOM } from "jsdom";
 const converterSource = await readFile(new URL("../src/converter.js", import.meta.url), "utf8");
 const contentSource = await readFile(new URL("../src/content.js", import.meta.url), "utf8");
 
-function nextTask() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+function nextTask(milliseconds = 0) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 test("每条助手回复获得独立按钮并复制所属完整内容", async () => {
@@ -33,9 +33,16 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   });
 
   const clipboardWrites = [];
+  let clipboardText = "原剪贴板内容";
   Object.defineProperty(dom.window.navigator, "clipboard", {
     configurable: true,
-    value: { writeText: async (text) => clipboardWrites.push(text) }
+    value: {
+      readText: async () => clipboardText,
+      writeText: async (text) => {
+        clipboardText = text;
+        clipboardWrites.push(text);
+      }
+    }
   });
   dom.window.eval(converterSource);
   dom.window.eval(contentSource);
@@ -45,6 +52,7 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   const buttons = dom.window.document.querySelectorAll("[data-feishu-copy-button]");
   assert.equal(buttons.length, 2);
   assert.equal(buttons[0].getAttribute("aria-label"), "复制飞书文档版");
+  assert.equal(buttons[0].getAttribute("data-feishu-copy-version"), "dev");
   assert.equal(buttons[0].previousElementSibling.getAttribute("data-testid"), "copy-turn-action-button");
   assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-color"), "rgb(80, 80, 80)");
   assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-opacity"), "0.528");
@@ -58,14 +66,29 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
 
   let officialClicks = 0;
   const officialButton = dom.window.document.querySelector('button[data-testid="copy-turn-action-button"]');
-  officialButton.addEventListener("click", () => { officialClicks += 1; });
+  officialButton.addEventListener("click", () => {
+    officialClicks += 1;
+    clipboardText = [
+      "## 第一条",
+      "",
+      "可视区域开头，变量为 (D_e)。",
+      "",
+      "[",
+      "D_e={I_{e1},I_{e2}}",
+      "]",
+      "",
+      "回复末尾标记 FIRST_TAIL"
+    ].join("\n");
+    officialButton.setAttribute("aria-label", "Copied");
+  });
   officialButton.click();
   await nextTask();
   assert.equal(officialClicks, 1);
   assert.equal(clipboardWrites.length, 0, "官方按钮不应触发插件剪贴板写入");
+  officialButton.setAttribute("aria-label", "Copy");
 
   buttons[0].click();
-  await nextTask();
+  await nextTask(400);
   assert.equal(clipboardWrites.length, 1);
   assert.equal(buttons[0].getAttribute("aria-label"), "已复制飞书文档版, 去粘贴吧~");
   assert.equal(tooltip.textContent, "已复制飞书文档版, 去粘贴吧~");
@@ -73,10 +96,41 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   assert.match(firstPlainText, /第一条/);
   assert.match(firstPlainText, /FIRST_TAIL/, "屏幕外的回复末尾也应被完整复制");
   assert.doesNotMatch(firstPlainText, /SECOND_TAIL/, "按钮不得跨越到下一条助手回复");
+  assert.match(firstPlainText, /变量为 \$D_e\$/);
+  assert.match(firstPlainText, /\$\$\nD_e=\{I_\{e1\},I_\{e2\}\}\n\$\$/);
 
   dom.window.document.body.append(dom.window.document.createElement("span"));
   await nextTask();
   assert.equal(dom.window.document.querySelectorAll("[data-feishu-copy-button]").length, 2, "重复扫描不得添加重复按钮");
+});
+
+test("读取官方复制结果失败时显示错误且不写入剪贴板", async () => {
+  const dom = new JSDOM(`
+    <article data-testid="conversation-turn-2">
+      <div data-message-author-role="assistant"><div class="markdown"><p>回复</p></div></div>
+      <div><button data-testid="copy-turn-action-button" aria-label="Copy">原生复制</button></div>
+    </article>
+  `, { runScripts: "outside-only", url: "https://chatgpt.com/c/error" });
+
+  let writeCount = 0;
+  Object.defineProperty(dom.window.navigator, "clipboard", {
+    configurable: true,
+    value: {
+      readText: async () => { throw new Error("权限被拒绝"); },
+      writeText: async () => { writeCount += 1; }
+    }
+  });
+  dom.window.eval(converterSource);
+  dom.window.eval(contentSource);
+  dom.window.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+  await nextTask();
+
+  const button = dom.window.document.querySelector("[data-feishu-copy-button]");
+  button.click();
+  await nextTask();
+
+  assert.equal(button.dataset.state, "error");
+  assert.equal(writeCount, 0);
 });
 
 test("内容脚本不拦截全局复制或重写原生剪贴板方法", () => {
