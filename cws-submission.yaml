@@ -1,0 +1,38 @@
+release:
+  version: "0.1.3"
+  zip_file: "dist/chatgpt-feishu-lark-doc-copy-v0.1.3.zip"
+  sha256: "8f97ee80516be911343f71aac736ab0071dac821e50a8c6d1ec45bd271ba4ac6"
+
+package:
+  required_root_entries:
+    - "manifest.json"
+    - "LICENSE"
+    - "NOTICE.md"
+    - "README.md"
+    - "src/"
+    - "icons/"
+  extra_top_level_directory_allowed: false
+
+icons:
+  "16": "icons/icon16.png"
+  "32": "icons/icon32.png"
+  "48": "icons/icon48.png"
+  "128": "icons/icon128.png"
+
+store_assets:
+  screenshots:
+    - "store-assets/screenshot-button-1280x800.png"
+    - "store-assets/screenshot-success-1280x800.png"
+  small_promo_tile: "store-assets/small-promo-tile-440x280.png"
+
+privacy_policy_url: "https://raw.githubusercontent.com/Sven-LI-sankyuu/ChatGPT-Feishu-Lark-Doc-Copy/main/PRIVACY.md"
+form_copy: "CWS_FORM_COPYPASTE.md"
+auto_submit_chrome_web_store: false
+
+verification:
+  chromium_extension_test: "PASSED"
+  online_chatgpt_new_profile: "BLOCKED_CLOUDFLARE_CHALLENGE"
+  asset_dimensions: "PASSED"
+  zip_root_layout: "PASSED"
+  zip_sensitive_file_scan: "PASSED"
+  privacy_policy_public_url: "PENDING_PUBLIC_PUSH"
