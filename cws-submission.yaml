@@ -35,4 +35,4 @@ verification:
   asset_dimensions: "PASSED"
   zip_root_layout: "PASSED"
   zip_sensitive_file_scan: "PASSED"
-  privacy_policy_public_url: "PENDING_PUBLIC_PUSH"
+  privacy_policy_public_url: "PASSED"
