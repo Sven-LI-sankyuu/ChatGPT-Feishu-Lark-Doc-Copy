@@ -69,6 +69,25 @@ test("转换文本中的原始 LaTeX 定界符", () => {
   assert.match(result.text, /```\n\\\(code\\\)\n```/);
 });
 
+test("保留引用块结束后的空行以终止引用解析", () => {
+  const { converter, root } = createConverter(`
+    <div class="markdown">
+      <p>假设我们要预测 NVIDIA 的价格。</p>
+      <blockquote><p>NVIDIA / NVDA</p></blockquote>
+      <p>然后把包含这些关键词的新闻和 NVDA 当天的 OHLC price pairing。</p>
+    </div>
+  `);
+
+  const result = converter.convertDomToClipboard(root);
+
+  assert.equal(result.text, [
+    "假设我们要预测 NVIDIA 的价格。",
+    "> NVIDIA / NVDA",
+    "",
+    "然后把包含这些关键词的新闻和 NVDA 当天的 OHLC price pairing。"
+  ].join("\n"));
+});
+
 test("将官方复制结果中的公式恢复为飞书定界符", () => {
   const { converter } = createConverter('<div class="markdown"></div>');
   const source = [

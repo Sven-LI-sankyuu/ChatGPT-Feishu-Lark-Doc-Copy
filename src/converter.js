@@ -446,6 +446,8 @@
   function normalizeMarkdown(text) {
     const output = [];
     let protectedBlock = "";
+    let pendingBlankLine = false;
+    let previousVisibleLine = "";
 
     for (const rawLine of String(text).replace(/\r\n?/g, "\n").split("\n")) {
       const line = rawLine.replace(/[ \t]+$/g, "");
@@ -472,10 +474,34 @@
         continue;
       }
 
-      if (trimmed) output.push(line);
+      if (!trimmed) {
+        pendingBlankLine = true;
+        continue;
+      }
+
+      if (pendingBlankLine && shouldKeepBlankLine(previousVisibleLine, line)) {
+        output.push("");
+      }
+
+      pendingBlankLine = false;
+      output.push(line);
+      previousVisibleLine = line;
     }
 
     return output.join("\n").trim();
+  }
+
+  /**
+   * 判断两段可见文本之间的空行是否需要保留。
+   *
+   * 引用块需要靠结束后的空行终止 lazy continuation，避免后面的普通段落继续被解析成 `>` 的内容。
+   */
+  function shouldKeepBlankLine(previousLine, nextLine) {
+    return isBlockquoteLine(previousLine) && !isBlockquoteLine(nextLine);
+  }
+
+  function isBlockquoteLine(line) {
+    return String(line).trimStart().startsWith(">");
   }
 
   globalThis.ChatGPTFeishuCopyConverter = Object.freeze({
