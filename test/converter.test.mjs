@@ -88,6 +88,27 @@ test("保留引用块结束后的空行以终止引用解析", () => {
   ].join("\n"));
 });
 
+test("保留分隔线前后的空行以避免段落被误判为标题", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "这也延续了原有方案中“私有框架和实验资产先在 Workspace 内迭代，成熟后再考虑进入正式平台”的思路。",
+    "",
+    "---",
+    "",
+    "# 2. 系统架构与职责边界"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "这也延续了原有方案中“私有框架和实验资产先在 Workspace 内迭代，成熟后再考虑进入正式平台”的思路。",
+    "",
+    "---",
+    "",
+    "# 2. 系统架构与职责边界"
+  ].join("\n"));
+});
+
 test("将官方复制结果中的公式恢复为飞书定界符", () => {
   const { converter } = createConverter('<div class="markdown"></div>');
   const source = [
@@ -126,6 +147,43 @@ test("将官方复制结果中的公式恢复为飞书定界符", () => {
   assert.match(result.text, /代码 `示例 \(D_e\)` 不转换/);
   assert.match(result.text, /```markdown\n\[\nD_e=\{I_\{e1\}\}\n\]\n```/);
   assert.doesNotMatch(result.text, /\n\n#|# 事件感知层\n\n/);
+});
+
+test("识别官方复制中的 LaTeX 转义空格公式块", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "尤其需要区分：",
+    "",
+    "[",
+    "effective\\ time",
+    "]",
+    "",
+    "数据描述哪个时期；",
+    "",
+    "[",
+    "Research\\ Result + Diagnostics",
+    "]",
+    "",
+    "[",
+    "available/published\\ time",
+    "]"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "尤其需要区分：",
+    "$$",
+    "effective\\ time",
+    "$$",
+    "数据描述哪个时期；",
+    "$$",
+    "Research\\ Result + Diagnostics",
+    "$$",
+    "$$",
+    "available/published\\ time",
+    "$$"
+  ].join("\n"));
 });
 
 test("恢复公式中被官方复制误转成二级标题的减号", () => {

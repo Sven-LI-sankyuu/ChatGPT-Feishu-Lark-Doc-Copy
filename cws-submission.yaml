@@ -1,7 +1,7 @@
 release:
-  version: "0.1.4"
-  zip_file: "dist/chatgpt-feishu-lark-doc-copy-v0.1.4.zip"
-  sha256: "50e97a58fbc9b053d8e76ad1c00e4eeae0aa516054cb028679a43e3c3455cdc8"
+  version: "0.1.5"
+  zip_file: "dist/chatgpt-feishu-lark-doc-copy-v0.1.5.zip"
+  sha256: "eb6924db57d0289eeb3da3497dd3802bdc7f0db3b7ae862fadea82e3ae13e625"
 
 package:
   required_root_entries:

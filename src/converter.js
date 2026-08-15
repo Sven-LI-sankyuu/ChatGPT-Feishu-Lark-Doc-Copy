@@ -90,7 +90,7 @@
     const value = lines.join("\n").trim();
     if (!value) return false;
 
-    return /\\[A-Za-z]+|[_^{}]|(?:^|\s)[=<>≤≥∈∑∏±→⟶](?:\s|$)/u.test(value);
+    return /\\[A-Za-z]+|\\\s|[_^{}]|(?:^|\s)[=<>≤≥∈∑∏±→⟶](?:\s|$)/u.test(value);
   }
 
   function normalizeOfficialDisplayFormula(lines) {
@@ -495,13 +495,20 @@
    * 判断两段可见文本之间的空行是否需要保留。
    *
    * 引用块需要靠结束后的空行终止 lazy continuation，避免后面的普通段落继续被解析成 `>` 的内容。
+   * 分隔线需要前后空行，避免上一段被解析为 Setext 标题。
    */
   function shouldKeepBlankLine(previousLine, nextLine) {
-    return isBlockquoteLine(previousLine) && !isBlockquoteLine(nextLine);
+    return (isBlockquoteLine(previousLine) && !isBlockquoteLine(nextLine))
+      || isThematicBreakLine(previousLine)
+      || isThematicBreakLine(nextLine);
   }
 
   function isBlockquoteLine(line) {
     return String(line).trimStart().startsWith(">");
+  }
+
+  function isThematicBreakLine(line) {
+    return /^(?:-{3,}|\*{3,}|_{3,})$/.test(String(line).trim());
   }
 
   globalThis.ChatGPTFeishuCopyConverter = Object.freeze({
