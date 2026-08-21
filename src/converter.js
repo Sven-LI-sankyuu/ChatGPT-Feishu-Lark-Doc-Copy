@@ -448,6 +448,7 @@
     let protectedBlock = "";
     let pendingBlankLine = false;
     let previousVisibleLine = "";
+    let tableState = "none";
 
     for (const rawLine of String(text).replace(/\r\n?/g, "\n").split("\n")) {
       const line = rawLine.replace(/[ \t]+$/g, "");
@@ -479,13 +480,14 @@
         continue;
       }
 
-      if (pendingBlankLine && shouldKeepBlankLine(previousVisibleLine, line)) {
+      if (pendingBlankLine && shouldKeepBlankLine(previousVisibleLine, line, tableState)) {
         output.push("");
       }
 
       pendingBlankLine = false;
       output.push(line);
       previousVisibleLine = line;
+      tableState = nextTableState(tableState, line);
     }
 
     return output.join("\n").trim();
@@ -496,11 +498,13 @@
    *
    * 引用块需要靠结束后的空行终止 lazy continuation，避免后面的普通段落继续被解析成 `>` 的内容。
    * 分隔线需要前后空行，避免上一段被解析为 Setext 标题。
+   * 已确认的管道表格需要结束后的空行，避免后续正文被飞书继续解析到表格中。
    */
-  function shouldKeepBlankLine(previousLine, nextLine) {
+  function shouldKeepBlankLine(previousLine, nextLine, tableState) {
     return (isBlockquoteLine(previousLine) && !isBlockquoteLine(nextLine))
       || isThematicBreakLine(previousLine)
-      || isThematicBreakLine(nextLine);
+      || isThematicBreakLine(nextLine)
+      || (tableState === "table" && !isPipeTableLine(nextLine));
   }
 
   function isBlockquoteLine(line) {
@@ -509,6 +513,22 @@
 
   function isThematicBreakLine(line) {
     return /^(?:-{3,}|\*{3,}|_{3,})$/.test(String(line).trim());
+  }
+
+  function nextTableState(currentState, line) {
+    if (!isPipeTableLine(line)) return "none";
+    if (currentState === "header" && isPipeTableDelimiterLine(line)) return "table";
+    return currentState === "table" ? "table" : "header";
+  }
+
+  function isPipeTableLine(line) {
+    const value = String(line).trim();
+    return value.startsWith("|") && value.endsWith("|") && value.indexOf("|", 1) > 0;
+  }
+
+  function isPipeTableDelimiterLine(line) {
+    const cells = String(line).trim().slice(1, -1).split("|");
+    return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
   }
 
   globalThis.ChatGPTFeishuCopyConverter = Object.freeze({

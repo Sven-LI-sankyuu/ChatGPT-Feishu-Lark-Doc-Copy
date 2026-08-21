@@ -109,6 +109,55 @@ test("保留分隔线前后的空行以避免段落被误判为标题", () => {
   ].join("\n"));
 });
 
+test("保留表格结束后的空行以终止飞书表格解析", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "第一阶段建议至少存在五类 Skill。",
+    "",
+    "| Skill | 职责 |",
+    "| --- | --- |",
+    "| Research Run Skill | 启动研究 |",
+    "",
+    "主理人的工作方式应该是：",
+    "",
+    "普通文本 | 不是 Markdown 表格 | 仍保持紧凑",
+    "",
+    "下一段正文。"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "第一阶段建议至少存在五类 Skill。",
+    "| Skill | 职责 |",
+    "| --- | --- |",
+    "| Research Run Skill | 启动研究 |",
+    "",
+    "主理人的工作方式应该是：",
+    "普通文本 | 不是 Markdown 表格 | 仍保持紧凑",
+    "下一段正文。"
+  ].join("\n"));
+});
+
+test("DOM 表格转换后保留与后续正文的边界", () => {
+  const { converter, root } = createConverter(`
+    <div class="markdown">
+      <table><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td>状态</td><td>已完成</td></tr></tbody></table>
+      <p>表格后的普通正文。</p>
+    </div>
+  `);
+
+  const result = converter.convertDomToClipboard(root);
+
+  assert.equal(result.text, [
+    "| 字段 | 说明 |",
+    "| --- | --- |",
+    "| 状态 | 已完成 |",
+    "",
+    "表格后的普通正文。"
+  ].join("\n"));
+});
+
 test("将官方复制结果中的公式恢复为飞书定界符", () => {
   const { converter } = createConverter('<div class="markdown"></div>');
   const source = [
