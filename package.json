@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-feishu-rich-copy",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "description": "通过独立按钮将 ChatGPT 回复按飞书可解析的 Markdown 复制到剪贴板。",
   "homepage": "https://github.com/Sven-LI-sankyuu/ChatGPT-Feishu-Lark-Doc-Copy",
@@ -14,6 +14,8 @@
     "browser:install": "playwright-core install chromium",
     "package": "npm run build && node scripts/package.mjs",
     "test": "node --test test/*.test.mjs",
+    "test:real": "node --test test/real-cases.test.mjs",
+    "validate:markdown": "node scripts/markdown-validator.mjs",
     "test:extension": "npm run build && node scripts/test-extension-load.mjs",
     "dev:chatgpt": "npm run build && node scripts/dev-chatgpt.mjs",
     "check": "npm test && npm run build",
@@ -22,6 +24,8 @@
   "devDependencies": {
     "fflate": "^0.8.3",
     "jsdom": "^26.1.0",
+    "katex": "^0.16.47",
+    "marked": "^18.0.11",
     "playwright-core": "^1.62.1"
   },
   "engines": {

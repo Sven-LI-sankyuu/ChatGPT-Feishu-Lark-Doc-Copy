@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "id": "real-01",
+      "name": "综合格式、标题层级、公式、表格和链接",
+      "input": "real-01/official.md",
+      "expected": "real-01/expected.md"
+    },
+    {
+      "id": "real-02",
+      "name": "正式事件文档、引用、公式和链接",
+      "input": "real-02/official.md",
+      "expected": "real-02/expected.md"
+    },
+    {
+      "id": "real-012",
+      "name": "事件定义文档和公式标题符号恢复",
+      "input": "real-012/official.md",
+      "expected": "real-012/expected.md"
+    },
+    {
+      "id": "real-0814",
+      "name": "引用、表格和公式边界",
+      "input": "real-0814/official.md",
+      "expected": "real-0814/expected.md"
+    },
+    {
+      "id": "real-0815",
+      "name": "分隔线、短公式和正式长文档",
+      "input": "real-0815/official.md",
+      "expected": "real-0815/expected.md"
+    },
+    {
+      "id": "real-0826",
+      "name": "LaTeX 公式压力测试",
+      "input": "real-0826/official.md",
+      "expected": "real-0826/expected.md"
+    }
+  ]
+}

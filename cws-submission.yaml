@@ -1,7 +1,7 @@
 release:
-  version: "0.1.6"
-  zip_file: "dist/chatgpt-feishu-lark-doc-copy-v0.1.6.zip"
-  sha256: "3364e344d82422d9eb1510cb17fe6bbfff62f7fb385375e76008079eb57393c0"
+  version: "0.1.7"
+  zip_file: "dist/chatgpt-feishu-lark-doc-copy-v0.1.7.zip"
+  sha256: "87fdcce8b4ab98987082ab8690ddbe5947e62bbb39cbe584706012cb164d8ae5"
 
 package:
   required_root_entries:
@@ -31,6 +31,7 @@ auto_submit_chrome_web_store: false
 
 verification:
   chromium_extension_test: "PASSED"
+  real_case_regression: "PASSED"
   online_chatgpt_new_profile: "BLOCKED_CLOUDFLARE_CHALLENGE"
   asset_dimensions: "PASSED"
   zip_root_layout: "PASSED"

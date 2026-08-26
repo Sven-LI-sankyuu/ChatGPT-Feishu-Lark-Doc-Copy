@@ -33,11 +33,16 @@
 |---|---|
 | `npm install` | 安装依赖 |
 | `npm test` | 运行自动测试 |
+| `npm run test:real` | 单独运行六组历史真实用例 |
+| `npm run validate:markdown -- <文件>` | 检查 Markdown、LaTeX 和飞书块边界，并报告行号 |
+| `npm run release:check` | 发布前完整门禁，包含全部测试和打包 |
 | `npm run test:extension` | 在 Chromium 中测试插件和剪贴板 |
 | `npm run package` | 生成版本化 ZIP |
 | `npm run dev:chatgpt` | 加载本地插件并打开 ChatGPT |
 
 `npm run build` 生成可通过开发者模式加载的 `dist/unpacked` 目录。首次运行浏览器测试前，需要执行 `npm run browser:install`。
+
+每次发布前运行 `npm run release:check`。这个命令会先运行全部自动测试，包括 `test/fixtures/real-cases` 中保存的官方复制输入和固定期望输出，再生成 `dist/chatgpt-feishu-lark-doc-copy-v<版本>.zip`。真实用例运行时会把实际文本和诊断报告写入 `temp/real-cases`，便于逐个检查。
 
 ## 隐私与开源
 

@@ -23,8 +23,8 @@
 
   function convertExistingLatexDelimiters(text) {
     return String(text)
-      .replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, (_, formula) => `$$\n${formula.trim()}\n$$`)
-      .replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, formula) => `$${formula.trim()}$`);
+      .replace(/\\\[\s*([\s\S]*?)\s*\\\]/g, (_, formula) => `$$\n${escapeLatexPercentSigns(formula.trim())}\n$$`)
+      .replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, formula) => `$${escapeLatexPercentSigns(formula.trim())}$`);
   }
 
   function convertOfficialCopyToClipboard(sourceText) {
@@ -42,6 +42,7 @@
     const lines = String(sourceText).replace(/\r\n?/g, "\n").split("\n");
     const output = [];
     let fence = "";
+    let formulaBlock = false;
 
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
@@ -53,9 +54,21 @@
         continue;
       }
 
+      if (formulaBlock) {
+        output.push(escapeLatexPercentSigns(line));
+        if (trimmed === "$$") formulaBlock = false;
+        continue;
+      }
+
       const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
       if (fenceMatch) {
         fence = fenceMatch[1];
+        output.push(line);
+        continue;
+      }
+
+      if (trimmed === "$$") {
+        formulaBlock = true;
         output.push(line);
         continue;
       }
@@ -110,7 +123,8 @@
         continue;
       }
 
-      normalized.push(hasMultilineEnvironment ? line.replace(/(?<!\\)\\\s*$/, "\\\\") : line);
+      const latexLine = escapeLatexPercentSigns(line);
+      normalized.push(hasMultilineEnvironment ? latexLine.replace(/(?<!\\)\\\s*$/, "\\\\") : latexLine);
     }
 
     return normalized;
@@ -132,33 +146,68 @@
   }
 
   function convertInlineText(text) {
-    const explicit = String(text).replace(/\\\(\s*([\s\S]*?)\s*\\\)/g, (_, formula) => `$${formula.trim()}$`);
+    const value = String(text);
     let output = "";
 
-    for (let index = 0; index < explicit.length; index += 1) {
-      if (explicit[index] !== "(" || explicit[index - 1] === "\\") {
-        output += explicit[index];
+    for (let index = 0; index < value.length; index += 1) {
+      if (value.startsWith("\\(", index)) {
+        const closingIndex = value.indexOf("\\)", index + 2);
+        if (closingIndex >= 0) {
+          output += `$${escapeLatexPercentSigns(value.slice(index + 2, closingIndex).trim())}$`;
+          index = closingIndex + 1;
+          continue;
+        }
+      }
+
+      if (value[index] === "$" && value[index - 1] !== "\\") {
+        const closingIndex = findClosingInlineDollar(value, index);
+        if (closingIndex >= 0) {
+          output += `$${escapeLatexPercentSigns(value.slice(index + 1, closingIndex))}$`;
+          index = closingIndex;
+          continue;
+        }
+      }
+
+      if (value[index] !== "(" || value[index - 1] === "\\") {
+        output += value[index];
         continue;
       }
 
-      const closingIndex = findMatchingParenthesis(explicit, index);
+      const closingIndex = findMatchingParenthesis(value, index);
       if (closingIndex < 0) {
-        output += explicit[index];
+        output += value[index];
         continue;
       }
 
-      const formula = explicit.slice(index + 1, closingIndex).trim();
+      const formula = value.slice(index + 1, closingIndex).trim();
       if (!looksLikeInlineFormula(formula)) {
-        output += explicit.slice(index, closingIndex + 1);
+        output += value.slice(index, closingIndex + 1);
         index = closingIndex;
         continue;
       }
 
-      output += `$${formula}$`;
+      output += `$${escapeLatexPercentSigns(formula)}$`;
       index = closingIndex;
     }
 
     return output;
+  }
+
+  function escapeLatexPercentSigns(text) {
+    return String(text).replace(/(^|[^\\])%/g, "$1\\%");
+  }
+
+  function findClosingInlineDollar(text, openingIndex) {
+    for (let index = openingIndex + 1; index < text.length; index += 1) {
+      if (text[index] !== "$" || text[index - 1] === "\\") continue;
+      if (text[index + 1] === "$") {
+        index += 1;
+        continue;
+      }
+      return index;
+    }
+
+    return -1;
   }
 
   function findMatchingParenthesis(text, openingIndex) {

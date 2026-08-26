@@ -267,6 +267,60 @@ test("恢复公式中被官方复制误转成二级标题的减号", () => {
   ].join("\n"));
 });
 
+test("已有美元公式块内部不再识别裸括号公式", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "行内公式测试：\\(f(x)=x^2+2x+1\\)，以及 \\(x\\in\\mathbb{R}\\)。",
+    "",
+    "$$",
+    "a_{i,j}^{(t+1)}=\\frac{\\exp(s_{i,j}/\\tau)}",
+    "{\\sum_{k=1}^{n}\\exp(s_{i,k}/\\tau)}",
+    "$$",
+    "",
+    "$$",
+    "\\mathcal{L}(\\theta)",
+    "=",
+    "\\ell(f_\\theta(x_i),y_i)",
+    "$$"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "行内公式测试：$f(x)=x^2+2x+1$，以及 $x\\in\\mathbb{R}$。",
+    "$$",
+    "a_{i,j}^{(t+1)}=\\frac{\\exp(s_{i,j}/\\tau)}",
+    "{\\sum_{k=1}^{n}\\exp(s_{i,k}/\\tau)}",
+    "$$",
+    "$$",
+    "\\mathcal{L}(\\theta)",
+    "=",
+    "\\ell(f_\\theta(x_i),y_i)",
+    "$$"
+  ].join("\n"));
+  assert.doesNotMatch(result.text, /\\exp\$|\$x\$=|f\$x\$/);
+});
+
+test("公式中的裸百分号转义为 LaTeX 百分号", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = [
+    "行内 \\(5%\\)",
+    "",
+    "[",
+    "\\text{指数单日下跌 }5%",
+    "]"
+  ].join("\n");
+
+  const result = converter.convertOfficialCopyToClipboard(source);
+
+  assert.equal(result.text, [
+    "行内 $5\\%$",
+    "$$",
+    "\\text{指数单日下跌 }5\\%",
+    "$$"
+  ].join("\n"));
+});
+
 test("保留相邻和嵌套的强调与删除线", () => {
   const { converter, root } = createConverter(`
     <div class="markdown">
