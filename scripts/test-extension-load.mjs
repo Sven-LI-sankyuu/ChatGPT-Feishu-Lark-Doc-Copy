@@ -35,19 +35,33 @@ try {
   await page.route("https://chatgpt.com/__feishu_extension_test__", (route) => route.fulfill({
     contentType: "text/html; charset=utf-8",
     body: `<!doctype html><html><head><meta charset="utf-8"></head><body>
-      <article data-testid="conversation-turn-2" data-case="success">
-        <div data-message-author-role="assistant"><div class="markdown">
-          <h2>真实扩展测试</h2>
-          <p>回复末尾 EXTENSION_TAIL</p>
-          <ul><li>列表项 LIST_ITEM</li></ul>
-          <table><thead><tr><th>字段</th><th>结果</th></tr></thead><tbody><tr><td>表格</td><td>TABLE_CELL</td></tr></tbody></table>
-        </div></div>
-        <div><button data-testid="copy-turn-action-button" aria-label="Copy" id="success-copy">原生复制</button></div>
-      </article>
-      <article data-testid="conversation-turn-4" data-case="error">
-        <div data-message-author-role="assistant"><div class="markdown"><p>错误状态样本</p></div></div>
-        <div><button data-testid="copy-turn-action-button" aria-label="Copy" id="error-copy">原生复制</button></div>
-      </article>
+      <div class="group flex flex-col pb-2 pt-2" data-case="success">
+        <div class="flex flex-col gap-3">
+          <div class="block-BQZwFn">
+            <div data-content-search-unit-key="fallback-turn-1:2:assistant">
+              <h4 data-conversation-role="assistant">ChatGPT 说：</h4>
+              <div data-markdown-text-style="assistant-message">
+                <h2>真实扩展测试</h2>
+                <p>回复末尾 EXTENSION_TAIL</p>
+                <ul><li>列表项 LIST_ITEM</li></ul>
+                <table><thead><tr><th>字段</th><th>结果</th></tr></thead><tbody><tr><td>表格</td><td>TABLE_CELL</td></tr></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="turn-action-controls"><button aria-label="复制" id="success-copy">原生复制</button></div>
+      </div>
+      <div class="group flex flex-col pb-2 pt-2" data-case="error">
+        <div class="flex flex-col gap-3">
+          <div class="block-BQZwFn">
+            <div data-content-search-unit-key="fallback-turn-2:2:assistant">
+              <h4 data-conversation-role="assistant">ChatGPT 说：</h4>
+              <div data-markdown-text-style="assistant-message"><p>错误状态样本</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="turn-action-controls"><button aria-label="复制" id="error-copy">原生复制</button></div>
+      </div>
     </body></html>`
   }));
   await page.goto("https://chatgpt.com/__feishu_extension_test__");
@@ -80,7 +94,7 @@ try {
   assert.equal(await page.locator("[data-feishu-copy-button]").count(), 2);
   assert.equal(await button.getAttribute("aria-label"), "复制飞书文档版");
   assert.equal(await button.getAttribute("data-feishu-copy-version"), manifest.version);
-  assert.equal(await button.evaluate((node) => node.previousElementSibling?.getAttribute("data-testid")), "copy-turn-action-button");
+  assert.equal(await button.evaluate((node) => node.previousElementSibling?.getAttribute("aria-label")), "复制");
 
   await button.click();
   await page.locator('[data-feishu-copy-button][data-state="success"]').waitFor();

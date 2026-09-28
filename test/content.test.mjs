@@ -19,14 +19,33 @@ function nextTask(milliseconds = 0) {
 
 test("每条助手回复获得独立按钮并复制所属完整内容", async () => {
   const dom = new JSDOM(`
-    <article data-testid="conversation-turn-2">
-      <div data-message-author-role="assistant"><div class="markdown" style="height:2000px"><h2>第一条</h2><p>可视区域开头</p><p>回复末尾标记 FIRST_TAIL</p></div></div>
-      <div class="actions"><button data-testid="copy-turn-action-button" aria-label="Copy" style="color: rgb(90, 90, 90); opacity: 0.66"><svg style="color: rgb(80, 80, 80); opacity: 0.8"></svg></button></div>
-    </article>
-    <article data-testid="conversation-turn-4">
-      <div data-message-author-role="assistant"><div class="markdown"><h2>第二条</h2><p>回复末尾标记 SECOND_TAIL</p></div></div>
-      <div class="actions"><button data-testid="copy-turn-action-button" aria-label="Copy">原生复制</button></div>
-    </article>
+    <div class="group flex flex-col pb-2 pt-2">
+      <div class="flex flex-col gap-3">
+        <div class="block-BQZwFn">
+          <div data-content-search-unit-key="fallback-turn-1:0:user">
+            <div class="turn-action-controls"><button aria-label="复制消息">用户复制</button></div>
+          </div>
+        </div>
+        <div class="block-BQZwFn">
+          <div data-content-search-unit-key="fallback-turn-1:2:assistant">
+            <h4 data-conversation-role="assistant">ChatGPT 说：</h4>
+            <div data-markdown-text-style="assistant-message" style="height:2000px"><h2>第一条</h2><p>可视区域开头</p><p>回复末尾标记 FIRST_TAIL</p><div data-markdown-table="true"><button aria-label="复制表格">表格复制</button></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="turn-action-controls"><button aria-label="复制" style="color: rgb(90, 90, 90); opacity: 0.66"><svg style="color: rgb(80, 80, 80); opacity: 0.8"></svg></button></div>
+    </div>
+    <div class="group flex flex-col pb-2 pt-2">
+      <div class="flex flex-col gap-3">
+        <div class="block-BQZwFn">
+          <div data-content-search-unit-key="fallback-turn-2:2:assistant">
+            <h4 data-conversation-role="assistant">ChatGPT 说：</h4>
+            <div data-markdown-text-style="assistant-message"><h2>第二条</h2><p>回复末尾标记 SECOND_TAIL</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="turn-action-controls"><button aria-label="复制">原生复制</button></div>
+    </div>
   `, {
     runScripts: "outside-only",
     url: "https://chatgpt.com/c/example"
@@ -53,10 +72,10 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   assert.equal(buttons.length, 2);
   assert.equal(buttons[0].getAttribute("aria-label"), "复制飞书文档版");
   assert.equal(buttons[0].getAttribute("data-feishu-copy-version"), "dev");
-  assert.equal(buttons[0].previousElementSibling.getAttribute("data-testid"), "copy-turn-action-button");
+  assert.equal(buttons[0].previousElementSibling.getAttribute("aria-label"), "复制");
   assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-color"), "rgb(80, 80, 80)");
   assert.equal(buttons[0].style.getPropertyValue("--feishu-copy-official-opacity"), "0.528");
-  assert.equal(buttons[1].previousElementSibling.getAttribute("data-testid"), "copy-turn-action-button");
+  assert.equal(buttons[1].previousElementSibling.getAttribute("aria-label"), "复制");
 
   buttons[0].dispatchEvent(new dom.window.MouseEvent("mouseenter"));
   const tooltip = dom.window.document.querySelector("[data-feishu-copy-tooltip]");
@@ -65,7 +84,7 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   assert.equal(tooltip.style.top, "7px", "提示层应定位在按钮下方");
 
   let officialClicks = 0;
-  const officialButton = dom.window.document.querySelector('button[data-testid="copy-turn-action-button"]');
+  const officialButton = dom.window.document.querySelector('button[aria-label="复制"]');
   officialButton.addEventListener("click", () => {
     officialClicks += 1;
     clipboardText = [
@@ -85,7 +104,7 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
   await nextTask();
   assert.equal(officialClicks, 1);
   assert.equal(clipboardWrites.length, 0, "官方按钮不应触发插件剪贴板写入");
-  officialButton.setAttribute("aria-label", "Copy");
+  officialButton.setAttribute("aria-label", "复制");
 
   buttons[0].click();
   await nextTask(400);
@@ -106,10 +125,17 @@ test("每条助手回复获得独立按钮并复制所属完整内容", async ()
 
 test("读取官方复制结果失败时显示错误且不写入剪贴板", async () => {
   const dom = new JSDOM(`
-    <article data-testid="conversation-turn-2">
-      <div data-message-author-role="assistant"><div class="markdown"><p>回复</p></div></div>
-      <div><button data-testid="copy-turn-action-button" aria-label="Copy">原生复制</button></div>
-    </article>
+    <div class="group flex flex-col pb-2 pt-2">
+      <div class="flex flex-col gap-3">
+        <div class="block-BQZwFn">
+          <div data-content-search-unit-key="fallback-turn-1:2:assistant">
+            <h4 data-conversation-role="assistant">ChatGPT 说：</h4>
+            <div data-markdown-text-style="assistant-message"><p>回复</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="turn-action-controls"><button aria-label="复制">原生复制</button></div>
+    </div>
   `, { runScripts: "outside-only", url: "https://chatgpt.com/c/error" });
 
   let writeCount = 0;

@@ -86,6 +86,8 @@ flowchart LR
 
 页面使用动态渲染，因此通过 `MutationObserver` 监听新增内容，并合并同一轮变化中的重复扫描。每个原生复制按钮最多对应一个插件按钮，重复执行初始化不得产生重复按钮。
 
+当前 ChatGPT 页面使用带 `:assistant` 后缀的 `data-content-search-unit-key` 或 `data-chatgpt-search-unit-key` 标识助手消息，正文使用 `data-markdown-text-style="assistant-message"` 标识，回复底部操作栏使用 `turn-action-controls` 标识，原生回复复制按钮使用 `aria-label="复制"` 或英文对应标签标识。插件只在这组新版结构中注入按钮，并从回复自己的直接操作栏中选择复制按钮，排除用户消息操作栏和表格内部的“复制表格”按钮。
+
 ## 安全与隐私
 
 插件只在 `chatgpt.com` 和 `chat.openai.com` 本地运行，不发送聊天内容，不加载远程代码，不记录分析数据。`clipboardRead` 和 `clipboardWrite` 权限用于用户主动点击飞书按钮后的单次处理：读取刚刚由官方按钮生成的文本，再写入飞书版本；插件不得定时读取、后台监听或保存剪贴板内容。

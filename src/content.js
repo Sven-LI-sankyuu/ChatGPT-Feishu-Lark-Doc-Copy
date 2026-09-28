@@ -15,7 +15,6 @@
   }
 
   const BUTTON_ATTRIBUTE = "data-feishu-copy-button";
-  const COPY_TEST_ID = "copy-turn-action-button";
   const TOOLTIP_ATTRIBUTE = "data-feishu-copy-tooltip";
   const EXTENSION_VERSION = globalThis.chrome?.runtime?.getManifest?.().version || "dev";
   let scanScheduled = false;
@@ -39,7 +38,9 @@
   }
 
   function scanAndInstallButtons() {
-    const assistantNodes = document.querySelectorAll('[data-message-author-role="assistant"]');
+    const assistantNodes = new Set(document.querySelectorAll(
+      '[data-content-search-unit-key$=":assistant"], [data-chatgpt-search-unit-key$=":assistant"]'
+    ));
 
     for (const assistantNode of assistantNodes) {
       const contentNode = findAssistantContentNode(assistantNode);
@@ -61,27 +62,37 @@
   }
 
   function findAssistantContentNode(assistantNode) {
-    return assistantNode.matches(".markdown")
-      ? assistantNode
-      : assistantNode.querySelector(".markdown") || assistantNode;
+    return assistantNode.querySelector('[data-markdown-text-style="assistant-message"]');
   }
 
   function findTurnNode(assistantNode) {
-    return assistantNode.closest("article")
-      || assistantNode.closest('[data-testid^="conversation-turn"]')
-      || assistantNode.closest('[data-turn="assistant"]');
+    let candidate = assistantNode.parentElement;
+    while (candidate && candidate !== document.body) {
+      const actionBar = Array.from(candidate.children).find((child) =>
+        child.matches(".turn-action-controls")
+      );
+      const containsAssistant = candidate.querySelector(
+        '[data-content-search-unit-key$=":assistant"], [data-chatgpt-search-unit-key$=":assistant"]'
+      ) === assistantNode;
+
+      if (actionBar && containsAssistant) return candidate;
+      candidate = candidate.parentElement;
+    }
+
+    return null;
   }
 
   function findOfficialCopyButton(turnNode) {
-    const exactButton = turnNode.querySelector(`button[data-testid="${COPY_TEST_ID}"]`);
-    if (exactButton && !exactButton.closest("pre, code")) return exactButton;
+    const actionBar = Array.from(turnNode.children).find((child) =>
+      child.matches(".turn-action-controls")
+    );
+    if (!actionBar) return null;
 
-    return Array.from(turnNode.querySelectorAll("button")).find((button) => {
-      if (button.hasAttribute(BUTTON_ATTRIBUTE) || button.closest("pre, code")) return false;
+    return Array.from(actionBar.querySelectorAll("button")).find((button) => {
+      if (button.hasAttribute(BUTTON_ATTRIBUTE)) return false;
       const label = [
         button.getAttribute("aria-label"),
         button.getAttribute("title"),
-        button.getAttribute("data-testid"),
         button.textContent
       ].filter(Boolean).join(" ").toLowerCase();
       return label.includes("copy") || label.includes("复制");
