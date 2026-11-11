@@ -373,3 +373,50 @@ test("空内容正确失败", () => {
   const { converter, root } = createConverter('<div class="markdown"><button>复制</button></div>');
   assert.throws(() => converter.convertDomToClipboard(root), /转换后为空/);
 });
+
+test("同一行的显式行间公式保持函数括号并拆成独立公式块", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = String.raw`前文 \(x\)。\[ \bar T(X)=\frac{1}{M}\sum_{m=1}^M T_m(X) \]后文 \(y\)。\[v(X)=0\]`;
+  assert.equal(converter.convertOfficialCopyToClipboard(source).text, String.raw`前文 $x$。
+$$
+\bar T(X)=\frac{1}{M}\sum_{m=1}^M T_m(X)
+$$
+后文 $y$。
+$$
+v(X)=0
+$$`);
+});
+
+test("双反斜杠定界符只在公式内部撤销 Markdown 转义", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = String.raw`变量 \\(X\_{i,t}\\) 和 \\(g^\*\\)。
+\\[ \mathcal G=\\{g_1,g_2\\} \\]
+\\[ \begin{aligned} g^\*(X)&=X\_{i,t}\\\ &+1 \end{aligned} \\]
+普通文本 \_ 和 \* 保留。`;
+  assert.equal(converter.convertOfficialCopyToClipboard(source).text, String.raw`变量 $X_{i,t}$ 和 $g^*$。
+$$
+\mathcal G=\{g_1,g_2\}
+$$
+$$
+\begin{aligned} g^*(X)&=X_{i,t}\\ &+1 \end{aligned}
+$$
+普通文本 \_ 和 \* 保留。`);
+});
+
+test("跨行显式公式保护内部括号与原始 LaTeX 转义", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = String.raw`\[ f(X)=\text{literal\_name}
++\left(\frac{v(X)}{\tau}\right) \]
+后续正文`;
+  assert.equal(converter.convertOfficialCopyToClipboard(source).text, String.raw`$$
+f(X)=\text{literal\_name}
++\left(\frac{v(X)}{\tau}\right)
+$$
+后续正文`);
+});
+
+test("代码中的单双反斜杠公式示例保持原样", () => {
+  const { converter } = createConverter('<div class="markdown"></div>');
+  const source = ['`\\[f(X)\\]` 和 `\\\\(X\\_i\\\\)`', '```tex', String.raw`\\[ f(X)=X\_i \\]`, '```'].join('\n');
+  assert.equal(converter.convertOfficialCopyToClipboard(source).text, source);
+});

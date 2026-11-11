@@ -68,7 +68,7 @@ try {
   await page.evaluate(() => {
     const officialButton = document.querySelector("#success-copy");
     officialButton.addEventListener("click", async () => {
-      await navigator.clipboard.writeText([
+      await navigator.clipboard.writeText(window.reviewOfficialText || [
         "## 真实扩展测试",
         "",
         "变量 (D_e)",
@@ -105,6 +105,18 @@ try {
   assert.match(clipboardText, /^- 列表项 LIST_ITEM/m);
   assert.match(clipboardText, /\| 表格 \| TABLE_CELL \|/);
   assert.match(clipboardText, /\$\$\nD_e=\{I_\{e1\},I_\{e2\}\}\n\$\$/);
+
+  // 将本次评审长文也送入真实按钮与剪贴板链路，检查完整输出和构建版本。
+  const reviewRoot = resolve(root, "test/fixtures/real-cases/real-20261111");
+  const reviewOfficial = await readFile(resolve(reviewRoot, "official.md"), "utf8");
+  const reviewExpected = await readFile(resolve(reviewRoot, "expected.md"), "utf8");
+  await page.evaluate((text) => {
+    window.reviewOfficialText = text;
+    document.querySelector("#success-copy").setAttribute("aria-label", "复制");
+  }, reviewOfficial);
+  await button.click();
+  await page.locator('[data-case="success"] [data-feishu-copy-button][data-state="success"]').waitFor();
+  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), reviewExpected);
 
   await page.evaluate(() => document.querySelector("#error-copy").remove());
   const errorButton = page.locator('[data-case="error"] [data-feishu-copy-button]');

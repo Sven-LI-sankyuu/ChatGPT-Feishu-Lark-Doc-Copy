@@ -4,6 +4,8 @@
 
 粘贴到飞书文档后，可以识别标题层级、段落、列表、引用、行内公式、行间公式、表格、超链接、粗体、斜体和删除线。
 
+最新版本：**v0.1.9**，发布日期：**2026-11-12**。已在 ChatGPT 官方 **5.6sol** 和 **6sol** 上完成复制测试。
+
 ## 安装
 
 1. 在 [GitHub Releases](https://github.com/Sven-LI-sankyuu/ChatGPT-Feishu-Lark-Doc-Copy/releases/latest) 下载最新 ZIP。
@@ -33,7 +35,7 @@
 |---|---|
 | `npm install` | 安装依赖 |
 | `npm test` | 运行自动测试 |
-| `npm run test:real` | 单独运行六组历史真实用例 |
+| `npm run test:real` | 单独运行七组历史真实用例 |
 | `npm run validate:markdown -- <文件>` | 检查 Markdown、LaTeX 和飞书块边界，并报告行号 |
 | `npm run release:check` | 发布前完整门禁，包含全部测试和打包 |
 | `npm run test:extension` | 在 Chromium 中测试插件和剪贴板 |

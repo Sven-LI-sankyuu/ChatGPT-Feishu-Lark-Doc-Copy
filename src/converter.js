@@ -73,6 +73,22 @@
         continue;
       }
 
+      // 显式行间公式可以与定界符位于同一行，也可以跨行。
+      // 必须先于裸括号启发式识别，避免把 T(X) 的括号再次转换成行内公式。
+      const display = findExplicitDisplayFormula(lines, index);
+      if (display) {
+        if (display.before.trim()) output.push(convertInlineFormulaDelimiters(display.before));
+        output.push("$$", ...normalizeOfficialDisplayFormula(
+          decodeOfficialFormula(display.body, display.escaped).trim().split("\n")
+        ), "$$");
+        index = display.end;
+        if (display.after.trim()) {
+          lines[index] = display.after;
+          index -= 1;
+        }
+        continue;
+      }
+
       const closingDelimiter = trimmed === "\\[" ? "\\]" : trimmed === "[" ? "]" : "";
       if (closingDelimiter) {
         const closingIndex = findClosingDelimiter(lines, index + 1, closingDelimiter);
@@ -90,6 +106,38 @@
     }
 
     return output.join("\n");
+  }
+
+  function findExplicitDisplayFormula(lines, start) {
+    const line = lines[start];
+    // 只在代码跨度外查找开始定界符，代码示例保持原样。
+    const visible = line.replace(/(`+)(.*?)\1/g, (code) => " ".repeat(code.length));
+    const opening = /(?<!\\)(\\{1,2})\[/.exec(visible);
+    if (!opening) return null;
+    const closing = opening[1] + "]";
+    const body = [];
+    for (let end = start; end < lines.length; end += 1) {
+      const part = end === start ? line.slice(opening.index + opening[0].length) : lines[end];
+      // 不跨越代码块或新的独立公式寻找结束符。
+      if (end > start && /^(?:`{3,}|~{3,}|\$\$)/.test(part.trim())) return null;
+      const closeIndex = part.indexOf(closing);
+      if (closeIndex >= 0) {
+        body.push(part.slice(0, closeIndex));
+        return {
+          before: line.slice(0, opening.index), body: body.join("\n"),
+          after: part.slice(closeIndex + closing.length), end,
+          escaped: opening[1].length === 2
+        };
+      }
+      body.push(part);
+    }
+    return null;
+  }
+
+  function decodeOfficialFormula(formula, escaped) {
+    // 双反斜杠定界符来自 Markdown 转义；仅在这类公式内部撤销一层
+    // 标点转义。普通 LaTeX 的 \_、\* 和换行符不能全局替换。
+    return escaped ? formula.replace(/\\([!"#$%&'()*+,\-./:;<=>?@[\]\\^_`{|}~])/g, "$1") : formula;
   }
 
   function findClosingDelimiter(lines, startIndex, delimiter) {
@@ -150,11 +198,16 @@
     let output = "";
 
     for (let index = 0; index < value.length; index += 1) {
-      if (value.startsWith("\\(", index)) {
-        const closingIndex = value.indexOf("\\)", index + 2);
+      const inlineOpening = /^(\\{1,2})\(/.exec(value.slice(index));
+      if (inlineOpening && value[index - 1] !== "\\") {
+        const closing = inlineOpening[1] + ")";
+        const closingIndex = value.indexOf(closing, index + inlineOpening[0].length);
         if (closingIndex >= 0) {
-          output += `$${escapeLatexPercentSigns(value.slice(index + 2, closingIndex).trim())}$`;
-          index = closingIndex + 1;
+          const formula = decodeOfficialFormula(
+            value.slice(index + inlineOpening[0].length, closingIndex), inlineOpening[1].length === 2
+          );
+          output += `$${escapeLatexPercentSigns(formula.trim())}$`;
+          index = closingIndex + closing.length - 1;
           continue;
         }
       }

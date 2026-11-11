@@ -35,6 +35,12 @@
       "name": "LaTeX 公式压力测试",
       "input": "real-0826/official.md",
       "expected": "real-0826/expected.md"
+    },
+    {
+      "id": "real-20261111",
+      "name": "20261111 研究计划：转义定界符、同一行行间公式与函数括号",
+      "input": "real-20261111/official.md",
+      "expected": "real-20261111/expected.md"
     }
   ]
 }
